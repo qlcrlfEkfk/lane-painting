@@ -1,0 +1,9 @@
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in "/home/user/.local/lib/python3.11/site-packages/cv2/qt/plugins"
+
+echo "# hong" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/qlcrlfEkfk/hong.git
+git push -u origin main
