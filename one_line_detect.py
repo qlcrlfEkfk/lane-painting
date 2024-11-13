@@ -3,6 +3,8 @@ import numpy as np
 import time  # 딜레이를 위해 추가
 import math
 
+save_angle = 0 
+
 # 색상 필터링 함수
 def color_filter(image):
     hls = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)  # BGR 이미지를 HLS 색상 공간으로 변환
@@ -68,6 +70,7 @@ def slide_window_search(binary_warped, center_current):
     center_lane = []  # 중심선을 찾기 위한 리스트
     color = [0, 255, 0]
     thickness = 2
+    global save_angle
 
     for w in range(4,7):
         # 윈도우 경계 설정
@@ -102,15 +105,14 @@ def slide_window_search(binary_warped, center_current):
     # ctx = np.trunc(center_fitx)  # 소수점 버림
     # return {'center_fitx': ctx, 'ploty': ploty}, out_img
     
-    # 2차 함수로 차선을 근사화하여 곡선 그리기
+    # 1차 함수로 차선을 근사화하여 직선 그리기
     center_fit = np.polyfit(centery, centerx, 1)
     ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
     center_fitx = center_fit[0] * ploty + center_fit[1]
-    print(np.degrees(np.arctan(center_fit[0])))
+    save_angle = (np.degrees(np.arctan(center_fit[0])))
     ctx = np.trunc(center_fitx)  # 소수점 버림
     return {'center_fitx': ctx, 'ploty': ploty}, out_img
 
-# 프레임 처리 함수
 def process_frame(frame, ym_per_pix, xm_per_pix):
     filtered_image = color_filter(frame)
     roi_image = reg_of_int(filtered_image)
@@ -126,7 +128,53 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         for y, x in zip(ploty.astype(int), center_fitx.astype(int)):
             cv2.circle(frame, (x, y), 3, (0, 255, 0), -1)  # 프레임에 초록색 점 그리기
 
+        # 초록색 선에서 y = 480일때 찾기
+        y_target = 480
+        if y_target in ploty:
+            index = np.where(ploty == y_target)[0][0]
+            x_on_line = int(center_fitx[index])
+        else:
+            # y_target이 ploty에 없는 경우 보간을 통해 근사 x 값을 찾음
+            x_on_line = int(np.interp(y_target, ploty, center_fitx))
+
+        # 초록색 선 위에 빨간 점을 표시 (중앙 부분에 표시)
+        mid_index = len(ploty) // 2  # ploty의 중앙 인덱스 계산
+        red_point_x = int(center_fitx[mid_index])  # 중앙 부분의 x 좌표
+        red_point_y = int(ploty[mid_index])  # 중앙 부분의 y 좌표
+        cv2.circle(frame, (red_point_x, red_point_y), 5, (0, 0, 255), -1)  # 빨간 점을 초록색 선 위에 그리기
+
+        # 초록색 점의 기울기를 계산하여 라인 표시
+        green_line_slope = (center_fitx[-1] - center_fitx[0]) / (ploty[-1] - ploty[0]) if (ploty[-1] - ploty[0]) != 0 else 0
+        green_line_angle = np.degrees(np.arctan(green_line_slope))  # 기울기를 각도로 변환
+        length = 300  # 빨간색 선의 길이 조정
+        
+        # 각도에 따른 빨간색 선의 끝점 계산
+        dx = int(length * np.cos(np.radians(green_line_angle)))
+        dy = int(length * np.sin(np.radians(green_line_angle)))
+
+        #파란색 점 그리기 (프레임 640x480 기준 (320,480)에 점 찍기)
+        blue_point_x, blue_point_y = 320, 480
+        cv2.circle(frame, (blue_point_x, blue_point_y),5,(255,0,0),-1)
+
+        # 파란 점과 초록색 선에서 y=480에 해당하는 x 좌표 사이의 거리 계산
+        distance = abs(x_on_line - blue_point_x)
+        print(f"파란 점과 초록색 선 사이의 거리: {distance}")
+        
+        #파란색 선의 기울기
+        blue_angle = 90
+        angle_difference = green_line_angle - blue_angle
+        print(f"파란 점과 초록색 선 사이의 각도: {angle_difference}")
+
+        # 빨간색 선 그리기 (중심점 기준으로 각도에 따라 표시)
+        cv2.line(frame, (red_point_x, red_point_y), (red_point_x + dx, red_point_y - dy), (0, 0, 255), 2)
+        # 왼쪽으로 빨간색 선 그리기 (반대 방향)
+        cv2.line(frame, (red_point_x, red_point_y), (red_point_x - dx, red_point_y + dy), (0, 0, 255), 2)
+
     return filtered_image, roi_image, thresholded_image, visualization_img, frame
+
+
+def draw_angle(save_angle):
+    save_angle
 
 # 동영상(카메라) 처리 함수
 def process_video():
@@ -137,19 +185,18 @@ def process_video():
     
     ym_per_pix = 0.56 / 480  # 세로 픽셀당 미터 (픽셀을 실제 거리로 변환하기 위한 값)
     xm_per_pix = 0.37 / 640  # 가로 픽셀당 미터 (픽셀을 실제 거리로 변환하기 위한 값)
-    
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             print("Error: Could not read frame.")
             break
-        
         # 각 단계별 처리 결과 반환
         filtered_image, roi_image, thresholded_image, visualization_img, lane_result = process_frame(frame, ym_per_pix, xm_per_pix)
         
         # 각 단계별 이미지를 화면에 표시
-        cv2.imshow("Color Filter", filtered_image)
-        cv2.imshow("Thresholded Image", thresholded_image)
+        # cv2.imshow("Color Filter", filtered_image)
+        # cv2.imshow("Thresholded Image", thresholded_image)
         cv2.imshow("Slide Window Search & Lane Detection", visualization_img)
         cv2.imshow("Result", frame)  # 메인 프레임에 그려진 결과 표시
         
