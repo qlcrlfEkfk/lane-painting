@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import time  # 딜레이를 위해 추가
 import math
+import servo_test_pigpio as sp
 
 save_angle = 0 
 
@@ -27,9 +28,9 @@ def color_filter(image):
     
     # 흰색과 노란색 마스크 결합
     combined_mask = cv2.bitwise_or(white_mask, yellow_mask)
-    final_mask = cv2.bitwise_and(combined_mask, black_mask)  # 검은색 제외한 마스크 적용
-    masked = cv2.bitwise_and(image, image, mask=final_mask)  # 필터링된 이미지 반환
-
+    # final_mask = cv2.bitwise_and(combined_mask, black_mask)  # 검은색 제외한 마스크 적용
+    masked = cv2.bitwise_and(image, image, mask=combined_mask)  # 필터링된 이미지 반환
+    cv2.imshow("Combined Mask", combined_mask)
     return masked
 
 # 관심 영역 설정 함수
@@ -124,6 +125,9 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         ploty = draw_info['ploty']
         center_fitx = draw_info['center_fitx']
 
+        #라인이 검출되었을  때
+        sp.setServoPos03(True)
+        
         # 메인 프레임에 초록색 점을 직접 그리기
         for y, x in zip(ploty.astype(int), center_fitx.astype(int)):
             cv2.circle(frame, (x, y), 3, (0, 255, 0), -1)  # 프레임에 초록색 점 그리기
@@ -164,12 +168,15 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         blue_angle = 90
         angle_difference = green_line_angle - blue_angle
         print(f"파란 점과 초록색 선 사이의 각도: {angle_difference}")
+        sp.setServoPos01(angle_difference)
 
         # 빨간색 선 그리기 (중심점 기준으로 각도에 따라 표시)
         cv2.line(frame, (red_point_x, red_point_y), (red_point_x + dx, red_point_y - dy), (0, 0, 255), 2)
         # 왼쪽으로 빨간색 선 그리기 (반대 방향)
         cv2.line(frame, (red_point_x, red_point_y), (red_point_x - dx, red_point_y + dy), (0, 0, 255), 2)
-
+    else:
+        sp.setServoPos03(False)
+        
     return filtered_image, roi_image, thresholded_image, visualization_img, frame
 
 
@@ -208,6 +215,5 @@ def process_video():
 
 if __name__ == "__main__":
     process_video()
-
 
 # test code please delete this message^^

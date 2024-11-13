@@ -22,6 +22,8 @@ degree에 각도를 입력하면 duty로 변환후 서보 제어(ChangeDutyCycle
 '''
 def setServoPos(degree):
   # 각도는 180도를 넘을 수 없다.
+  if degree > 180:
+    degree = 180
 
   # 각도(degree)를 duty로 변경한다.
   duty = SERVO_MIN_DUTY+(degree*(SERVO_MAX_DUTY-SERVO_MIN_DUTY)/180.0)
@@ -32,23 +34,32 @@ def setServoPos(degree):
   # 변경된 duty값을 서보 pwm에 적용
   servo01.ChangeDutyCycle(duty)
   servo02.ChangeDutyCycle(duty)
-  sleep(1)
+  sleep(0.5)
   GPIO.setup(servoPin01, GPIO.IN)
   GPIO.setup(servoPin02, GPIO.IN)
 
 
-if __name__ == "__main__":  
-  angle = 0 
-  while True:
-    if angle > 90:
-      angle = 0
-    angle += 10
-    # 서보 30도에 위치    
-    setServoPos(angle)
-    sleep(1)
+# if __name__ == "__main__":  
+#   angle = 0 
+#   while True:
+#     # 서보 30도에 위치    
+#     setServoPos(0)      # 서보를 0도로 이동
+#     sleep(2)
+#     setServoPos(30)      # 서보를 0도로 이동
+#     sleep(2)
+#     setServoPos(60)      # 서보를 0도로 이동
+#     sleep(2)
+#     setServoPos(90)     # 서보를 90도로 이동
+#     sleep(2)
+#     setServoPos(120)     # 서보를 50도로 이동
+#     sleep(2)
+#     setServoPos(150)    # 서보를 120도로 이동
+#     sleep(2)
+#     setServoPos(180)    # 서보를 180도로 이동
+#     sleep(2)
 
-  # 서보 PWM 정지
-  servo01.stop()
-  servo02.stop()
-  # GPIO 모드 초기화
-  GPIO.cleanup()
+#   # 서보 PWM 정지
+#   servo01.stop()
+#   servo02.stop()
+#   # GPIO 모드 초기화
+#   GPIO.cleanup()
