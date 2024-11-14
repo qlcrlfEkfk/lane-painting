@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import time  # 딜레이를 위해 추가
 import math
-import servo_test_pigpio as sp
+import servo_pigpio as sp
 
 save_angle = 0 
 
