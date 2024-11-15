@@ -14,10 +14,7 @@ pi = pigpio.pi()
 def setServoPos01(degree):
     # 각도(degree)를 펄스 폭(pulse width)으로 변환
     degree = degree + 180
-    if degree > 180:
-        degree = 180
-    elif degree < 0:
-        degree = 0
+    degree = max(30, min(150, degree))  # 각도를 0~180도로 제한
 
     pulsewidth = SERVO_MIN_PULSEWIDTH + (degree * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
     print("Degree: {} to {} (Pulse Width)".format(degree, pulsewidth))
@@ -28,11 +25,8 @@ def setServoPos01(degree):
 # 서보 위치 제어 함수
 def setServoPos02(degree):
     # 각도(degree)를 펄스 폭(pulse width)으로 변환
-    degree = degree + 180
-    if degree > 180:
-        degree = 180
-    elif degree < 0:
-        degree = 0
+    degree = max(30, min(150, degree))  # 각도를 0~180도로 제한
+
 
     pulsewidth = SERVO_MIN_PULSEWIDTH + (degree * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
     print("Degree: {} to {} (Pulse Width)".format(degree, pulsewidth))
@@ -43,10 +37,10 @@ def setServoPos02(degree):
 # 서보 위치 제어 함수
 def setServoPos03(detected):
     if detected:
-        pulsewidth = SERVO_MIN_PULSEWIDTH + (60 * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
+        pulsewidth = SERVO_MIN_PULSEWIDTH + (40 * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
         print("Servo03 is going down")
     else:
-        pulsewidth = SERVO_MIN_PULSEWIDTH + (170 * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
+        pulsewidth = SERVO_MIN_PULSEWIDTH + (150 * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
         print("Servo03 is going up")
 
         # 펄스 폭을 설정하여 서보 모터의 위치를 제어
