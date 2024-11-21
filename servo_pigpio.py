@@ -15,7 +15,6 @@ def setServoPos01(degree):
     # 각도(degree)를 펄스 폭(pulse width)으로 변환
     degree = degree + 180
     degree = max(30, min(150, degree))  # 각도를 0~180도로 제한
-
     pulsewidth = SERVO_MIN_PULSEWIDTH + (degree * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
     print("Degree: {} to {} (Pulse Width)".format(degree, pulsewidth))
 
@@ -25,9 +24,8 @@ def setServoPos01(degree):
 # 서보 위치 제어 함수
 def setServoPos02(degree):
     # 각도(degree)를 펄스 폭(pulse width)으로 변환
+    degree = degree + 90
     degree = max(30, min(150, degree))  # 각도를 0~180도로 제한
-
-
     pulsewidth = SERVO_MIN_PULSEWIDTH + (degree * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
     print("Degree: {} to {} (Pulse Width)".format(degree, pulsewidth))
 
@@ -47,3 +45,5 @@ def setServoPos03(detected):
     pi.set_servo_pulsewidth(servoPin03, pulsewidth)
 
 
+# def setServoPos1_2(degree, distance):
+    

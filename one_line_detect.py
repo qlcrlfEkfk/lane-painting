@@ -160,6 +160,12 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         blue_point_x, blue_point_y = 320, 480
         cv2.circle(frame, (blue_point_x, blue_point_y),5,(255,0,0),-1)
 
+        # 파란색 세로 실선 그리기 (프레임 640x480 기준)
+        blue_line_x = 320  # x 좌표 (가로 위치 고정)
+        line_start_y, line_end_y = 0, 480   # 실선 시작 y 좌표, 실선 끝 y 좌표
+        # 실선 그리기
+        cv2.line(frame, (blue_line_x, line_start_y), (blue_line_x, line_end_y), (255, 0, 0), 2)
+        # cv2.line(frame, (blue_line_x, line_start_y), (blue_line_x, line_end_y + (line_end_y/2)), (255, 0, 0), 2)
         # 파란 점과 초록색 선에서 y=480에 해당하는 x 좌표 사이의 거리 계산
         distance = abs(x_on_line - blue_point_x)
         print(f"파란 점과 초록색 선 사이의 거리: {distance}")
@@ -174,14 +180,50 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         cv2.line(frame, (red_point_x, red_point_y), (red_point_x + dx, red_point_y - dy), (0, 0, 255), 2)
         # 왼쪽으로 빨간색 선 그리기 (반대 방향)
         cv2.line(frame, (red_point_x, red_point_y), (red_point_x - dx, red_point_y + dy), (0, 0, 255), 2)
+
+        ####################################################
+        # 삼각형 생성 및 파란선 맨위와 초록선 맨아래의 각도 출력
+        blue_top_x, blue_top_y = blue_line_x, line_start_y  # 파란선의 맨위 좌표
+        # blue_bottom_x, blue_bottom_y = blue_line_x, line_end_y  # 파란선의 맨아래 좌표
+        blue_bottom_x, blue_bottom_y = blue_line_x, line_end_y  # 파란선의 맨아래 좌표
+        green_bottom_x, green_bottom_y = x_on_line, y_target  # 초록선의 맨아래 좌표
+        
+        # 파란선 맨위와 초록선 맨아래를 잇는 실선 그리기
+        cv2.line(frame, (blue_top_x, blue_top_y), (green_bottom_x, green_bottom_y), (255, 255, 0), 2)
+
+        # 각도 계산
+        blue_top_to_bottom_slope = (blue_bottom_y - blue_top_y) / (blue_bottom_x - blue_top_x) if (blue_bottom_x - blue_top_x) != 0 else float('inf')
+        blue_top_to_green_bottom_slope = (green_bottom_y - blue_top_y) / (green_bottom_x - blue_top_x) if (green_bottom_x - blue_top_x) != 0 else float('inf')
+        
+        # 기울기를 통해 각도 계산 (atan으로 각도를 구한 후 차이를 계산)
+        blue_top_to_bottom_angle = np.degrees(np.arctan(blue_top_to_bottom_slope))
+        blue_top_to_green_bottom_angle = np.degrees(np.arctan(blue_top_to_green_bottom_slope))
+        angle_between = abs(blue_top_to_bottom_angle - blue_top_to_green_bottom_angle)
+        
+        print(f"파란선 맨위와 초록선 맨아래의 각도: {angle_between:.2f}도")
+                ####################################################
+        # 삼각형 생성 및 파란선 맨위와 빨간점의 각도 출력
+        blue_top_x, blue_top_y = blue_line_x, line_start_y  # 파란선의 맨위 좌표
+        red_point_x, red_point_y = red_point_x, red_point_y  # 빨간점 좌표
+        
+        # 파란선 맨위와 빨간점을 잇는 실선 그리기
+        cv2.line(frame, (blue_top_x, blue_top_y), (red_point_x, red_point_y), (255, 255, 0), 2)
+
+        # 각도 계산
+        blue_top_to_bottom_slope = (blue_bottom_y - blue_top_y) / (blue_bottom_x - blue_top_x) if (blue_bottom_x - blue_top_x) != 0 else float('inf')
+        blue_top_to_red_point_slope = (red_point_y - blue_top_y) / (red_point_x - blue_top_x) if (red_point_x - blue_top_x) != 0 else float('inf')
+        
+        # 기울기를 통해 각도 계산 (atan으로 각도를 구한 후 차이를 계산)
+        blue_top_to_bottom_angle = np.degrees(np.arctan(blue_top_to_bottom_slope))
+        blue_top_to_red_point_angle = np.degrees(np.arctan(blue_top_to_red_point_slope))
+        angle_between_red = abs(blue_top_to_bottom_angle - blue_top_to_red_point_angle)
+        
+        print(f"파란선 맨위와 빨간점 사이의 각도: {angle_between_red:.2f}도")
+        ####################################################
     else:
         sp.setServoPos03(False)
         
     return filtered_image, roi_image, thresholded_image, visualization_img, frame
-
-
-def draw_angle(save_angle):
-    save_angle
 
 # 동영상(카메라) 처리 함수
 def process_video():

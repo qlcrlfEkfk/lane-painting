@@ -1,70 +1,23 @@
-홍정훈은 보아라
-----------------------------------------------------------------------------------
-def process_frame(frame, ym_per_pix, xm_per_pix):
-    filtered_image = color_filter(frame)
-    roi_image = reg_of_int(filtered_image)
-    thresholded_image = apply_threshold(roi_image)
-    centerbase = plothistogram(thresholded_image)
-    draw_info, visualization_img = slide_window_search(thresholded_image, centerbase)
-
-    if isinstance(draw_info, dict) and 'center_fitx' in draw_info and draw_info['center_fitx'] != []:
-        ploty = draw_info['ploty']
-        center_fitx = draw_info['center_fitx']
-
-        # 메인 프레임에 초록색 점을 직접 그리기
-        for y, x in zip(ploty.astype(int), center_fitx.astype(int)):
-            cv2.circle(frame, (x, y), 3, (0, 255, 0), -1)  # 프레임에 초록색 점 그리기
-
-        # 프레임의 중심 좌표 계산
-        center_x, center_y = frame.shape[1] // 2, frame.shape[0] // 2
-        cv2.circle(frame, (center_x, center_y), 3, (0, 0, 255), -1)  # 중앙점에 빨간색 점 표시
-
-        # 초록색 점의 기울기를 계산하여 라인 표시
-        slope = (center_fitx[-1] - center_fitx[0]) / (ploty[-1] - ploty[0]) if (ploty[-1] - ploty[0]) != 0 else 0
-        angle = np.degrees(np.arctan(slope))  # 기울기를 각도로 변환
-        length = 200  # 빨간색 선의 길이 조정
-
-        # 각도에 따른 빨간색 선의 끝점 계산
-        dx = int(length * np.cos(np.radians(angle)))
-        dy = int(length * np.sin(np.radians(angle)))
-
-        # 빨간색 선 그리기 (중심점 기준으로 각도에 따라 표시)
-        cv2.line(frame, (center_x, center_y), (center_x + dx, center_y - dy), (0, 0, 255), 2)
-
-    return filtered_image, roi_image, thresholded_image, visualization_img, frame
----------------------------------------------------------------------------------
+sudo nano /etc/systemd/system/pigpiod.service
 
 
-# 메인 프레임에 초록색 점을 직접 그리기
-for y, x in zip(ploty.astype(int), center_fitx.astype(int)):
-    cv2.circle(frame, (x, y), 3, (0, 255, 0), -1)  # 프레임에 초록색 점 그리기
+파일에 추가 
+[Unit]
+Description=Pigpio daemon
+After=network.target
 
-# 중심점 계산
-center_x, center_y = frame.shape[1] // 2, frame.shape[0] // 2
-cv2.circle(frame, (center_x, center_y), 3, (0, 0, 255), -1)  # 가운데 빨간색 점 유지
+[Service]
+ExecStart=/usr/bin/pigpiod
+ExecStop=/bin/systemctl kill pigpiod
+Restart=always
+Type=simple
 
-# 기울기 계산
-slope = (center_fitx[-1] - center_fitx[0]) / (ploty[-1] - ploty[0]) if (ploty[-1] - ploty[0]) != 0 else 0
-angle_rad = np.arctan(slope)
-angle_deg = np.degrees(angle_rad)
+[Install]
+WantedBy=multi-user.target
 
-# 길이 설정 및 직선의 끝점 계산
-length = 200  # 직선의 길이
-dx = int(length * np.cos(angle_rad))
-dy = int(length * np.sin(angle_rad))
+명령어 실행
+sudo systemctl enable pigpiod
 
-# 빨간색 라인 그리기 (받는 각에 따라 회전)
-x1 = center_x - dx
-y1 = center_y - dy
-x2 = center_x + dx
-y2 = center_y + dy
-cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+sudo reboot
 
-
-  File "/home/user/final_project/one_line_detect.py", line 187, in process_video
-    filtered_image, roi_image, thresholded_image, visualization_img, lane_result = process_frame(frame, ym_per_pix, xm_per_pix)
-                                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/user/final_project/one_line_detect.py", line 157, in process_frame
-    distance = abs(x_on_line - blue_point_x)
-                   ^^^^^^^^^
-UnboundLocalError: cannot access local variable 'x_on_line' where it is not associated with a value
+sudo systemctl status pigpiod
