@@ -63,19 +63,19 @@ def plothistogram(image):
 # 슬라이딩 윈도우를 사용하여 차선 중심 탐지
 def slide_window_search(binary_warped, center_current):
     out_img = np.dstack((binary_warped, binary_warped, binary_warped))  # 시각화를 위한 출력 이미지
-    nwindows = 20  # 슬라이딩 윈도우 수
+    nwindows = 21  # 슬라이딩 윈도우 수
     window_height = int(binary_warped.shape[0] / nwindows)  # 각 윈도우의 높이
     nonzero = binary_warped.nonzero()  # 0이 아닌 픽셀 좌표 추출
     nonzero_y = np.array(nonzero[0])
     nonzero_x = np.array(nonzero[1])
-    margin = 150  # 윈도우 폭
+    margin = 250  # 윈도우 폭
     minpix = 60  # 최소 픽셀 수
     center_lane = []  # 중심선을 찾기 위한 리스트
     color = [0, 255, 0]
     thickness = 2
     global save_angle
 
-    for w in range(nwindows):
+    for w in range(9,21):
         # 윈도우 경계 설정
         win_y_low = binary_warped.shape[0] - (w + 1) * window_height
         win_y_high = binary_warped.shape[0] - w * window_height
@@ -102,13 +102,6 @@ def slide_window_search(binary_warped, center_current):
         print("Warning: No center lane detected")
         return {'center_fitx': [], 'ploty': []}, out_img
 
-    # 3차 함수로 차선을 근사화하여 곡선 그리기
-    # center_fit = np.polyfit(centery, centerx, 3)
-    # ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
-    # center_fitx = center_fit[0] * ploty ** 3 + center_fit[1] * ploty ** 2 + center_fit[2] * ploty + center_fit[3]
-    # ctx = np.trunc(center_fitx)  # 소수점 버림
-    # return {'center_fitx': ctx, 'ploty': ploty}, out_img
-
     # 2차 함수로 차선을 근사화하여 곡선 그리기
     center_fit = np.polyfit(centery, centerx, 2)
     ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
@@ -124,9 +117,18 @@ def slide_window_search(binary_warped, center_current):
     # ctx = np.trunc(center_fitx)  # 소수점 버림
     # return {'center_fitx': ctx, 'ploty': ploty}, out_img
 
+# changed code
 def process_frame(frame, ym_per_pix, xm_per_pix):
+    # Original frame dimensions
+    height, width, _ = frame.shape
+    extended_height = height + 360  # Extend Y-axis by 200 pixels
+
+    # Create a black canvas with extended height
+    extended_frame = np.zeros((extended_height, width, 3), dtype=np.uint8)
+    extended_frame[:height, :, :] = frame  # Copy original frame to the top
+    
     # 색상 필터 적용
-    filtered_image = color_filter(frame)
+    filtered_image = color_filter(extended_frame)
     # 관심 영역(ROI) 설정
     roi_image = reg_of_int(filtered_image)
     # 임계값 처리
@@ -136,7 +138,6 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
     # 슬라이딩 윈도우 탐색
     draw_info, visualization_img = slide_window_search(thresholded_image, centerbase)
 
-    # 선이 검출되었을 경우
     if isinstance(draw_info, dict) and 'center_fitx' in draw_info and draw_info['center_fitx'] != []:
         ploty = draw_info['ploty']  # y 좌표 배열
         center_fitx = draw_info['center_fitx']  # 검출된 중심선의 x 좌표 배열
@@ -146,62 +147,86 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
 
         # 중심선에 초록색 점 그리기
         for y, x in zip(ploty.astype(int), center_fitx.astype(int)):
-            cv2.circle(frame, (x, y), 3, (0, 255, 0), -1)
+            cv2.circle(extended_frame, (x, y), 1, (0, 255, 0), -1)
 
-        # 가상의 y 값 720까지 계산을 확장
-        y_extended = np.linspace(0, 720, num=720)
-        x_extended = np.interp(y_extended, ploty, center_fitx)  # 기존 선을 기반으로 보간
+        # 가상의 y 값 840까지 계산을 확장
+        y_extended = np.linspace(0, 840, num=840)
+        x_extended = np.interp(y_extended, ploty, center_fitx)  # 기존 선을 기반으로 보간 2차
 
-        # y=480에서 x 좌표 계산
-        y_target = 480
-        x_on_line = int(np.interp(y_target, y_extended, x_extended))
+        mvp_x1 = 0
+        mvp_y1 = 0
+        flag = False 
+        # 초록선 확장 #############################################
+        for i in range(len(y_extended) - 1):
+            y1, x1 = int(y_extended[i]), int(x_extended[i])
+            
+            distance = math.sqrt((x1 - 320) ** 2 + (y1 - 336) ** 2)
+            if((y1 > 336) and distance >= 384 and not flag):
+                mvp_x1, mvp_y1 = x1, y1
+                flag = True
+            
+            y2, x2 = int(y_extended[i + 1]), int(x_extended[i + 1])
+            cv2.line(extended_frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
+        #############################################
 
-        # 초록색 선의 중심에 빨간 점 표시
-        mid_index = len(y_extended) // 2  # 중심 인덱스 계산
-        red_point_x = int(x_extended[mid_index])  # 중심 x 좌표
-        red_point_y = int(y_extended[mid_index])  # 중심 y 좌표
-        cv2.circle(frame, (red_point_x, red_point_y), 5, (0, 0, 255), -1)  # 빨간 점 그리기
+        # 초록선 방정식 계산
+        green_line_slope = (x_extended[-1] - x_extended[0]) / (y_extended[-1] - y_extended[0]) if (y_extended[-1] - y_extended[0]) != 0 else 0
+        green_line_intercept = x_extended[0] - green_line_slope * y_extended[0]
+
+        red_point_x, red_point_y = mvp_x1, mvp_y1  # 초기값
+
+        # 교차점 빨간 점 표시
+        if mvp_y1 is not None and red_point_y is not None:
+            cv2.circle(extended_frame, (mvp_x1, mvp_y1), 5, (0, 0, 255), -1)
+        else:
+            print("교차점 없음")
+        ############################
 
         # 초록색 선의 기울기 계산
-        green_line_slope = (x_extended[-1] - x_extended[0]) / (y_extended[-1] - y_extended[0]) if (y_extended[-1] - y_extended[0]) != 0 else 0
         green_line_angle = np.degrees(np.arctan(green_line_slope))  # 기울기를 각도로 변환
 
+        ############################
         # 빨간색 선 그리기 (중심 기준)
-        length = 300  # 선의 길이
+        length = 120  # 선의 길이
         dx = int(length * np.cos(np.radians(green_line_angle)))
         dy = int(length * np.sin(np.radians(green_line_angle)))
 
-        # 파란 점과 초록색 선 사이 거리 계산
-        blue_point_x, blue_point_y = 320, 480  # 화면 중앙에 파란 점
-        cv2.circle(frame, (blue_point_x, blue_point_y), 5, (255, 0, 0), -1)
-        cv2.line(frame, (320, 0), (320, 480), (255, 0, 0), 2)  # 세로선 추가
+        ############################
 
-        distance = abs(x_on_line - blue_point_x)
-        print(f"파란 점과 초록색 선 사이 거리: {distance}")
+        # 파란 점 중심으로 아래쪽 반원 그리기
+        center_point = (320, 336)
+        radius = 384
 
-        # 파란 점과 초록 선 사이 각도 계산
-        blue_angle = 90  # 화면 세로선의 각도
-        angle_difference = green_line_angle - blue_angle
-        print(f"파란 점과 초록색 선 사이 각도: {angle_difference}")
-        sp.setServoPos01(angle_difference)
+        # 엘립스를 사용하여 아래쪽 반원 그리기
+        cv2.ellipse(extended_frame, center_point, (radius, radius), 0, 0, 180, (0, 165, 255), 1)
 
         # 중심점 기준으로 빨간색 선 그리기
-        cv2.line(frame, (red_point_x, red_point_y), (red_point_x + dx, red_point_y - dy), (0, 0, 255), 2)
-        cv2.line(frame, (red_point_x, red_point_y), (red_point_x - dx, red_point_y + dy), (0, 0, 255), 2)
+        cv2.line(extended_frame, (red_point_x, red_point_y), (red_point_x + dx, red_point_y - dy), (0, 0, 255), 10)
+        cv2.line(extended_frame, (red_point_x, red_point_y), (red_point_x - dx, red_point_y + dy), (0, 0, 255), 10)
 
-        # 파란선과 초록선의 끝점 각도 계산 (y=720까지 확장)
-        blue_top_x, blue_top_y = blue_point_x, 0  # 파란선 맨 위 좌표
-        green_bottom_x, green_bottom_y = int(x_extended[-1]), 720  # 초록선 맨 아래 좌표
-        cv2.line(frame, (blue_top_x, blue_top_y), (green_bottom_x, green_bottom_y), (255, 255, 0), 2)
+        # 카메라 중심 파란색 선 그리기 & 모터 중심점
+        cv2.line(extended_frame, (320, 0), (320, 840), (255, 0, 0), 2)
+        cv2.circle(extended_frame, (320, 336), 5, (255, 0, 0), -1)
 
-        # 기울기를 사용한 각도 계산
-        blue_top_to_bottom_slope = (480 - blue_top_y) / (blue_point_x - blue_top_x) if (blue_point_x - blue_top_x) != 0 else float('inf')
-        blue_top_to_green_bottom_slope = (green_bottom_y - blue_top_y) / (green_bottom_x - blue_top_x) if (green_bottom_x - blue_top_x) != 0 else float('inf')
+        # 모터 중심점과 빨강 교차점 그리기
+        cv2.line(extended_frame, (320, 336), (red_point_x, red_point_y), (0, 255, 255), 2)
 
-        blue_top_to_bottom_angle = np.degrees(np.arctan(blue_top_to_bottom_slope))
-        blue_top_to_green_bottom_angle = np.degrees(np.arctan(blue_top_to_green_bottom_slope))
-        angle_between = abs(blue_top_to_bottom_angle - blue_top_to_green_bottom_angle)
-        print(f"파란선과 초록선의 끝점 각도: {angle_between:.2f}도")
+        # 두 점의 좌표 1모터 각
+        x1, y1 = 320, 336  # 첫 번째 점
+        x2, y2 = red_point_x, red_point_y  # 두 번째 점
+        dx01 = x2 - x1
+        dy01 = y2 - y1
+        angle_radians01 = np.arctan2(dy01, dx01)  # 역탄젠트 사용 (라디안 단위)
+        angle_degrees01 = np.degrees(angle_radians01)# 라디안을 각도로 변환
+        sp.setServoPos01(angle_degrees01)
+        print(f"1번 모터 기울기 각도: {angle_degrees01:.2f}도")
+
+        angle_radians02 = np.arctan2(dy, dx)  # 역탄젠트 계산
+        angle_degrees02 = np.degrees(angle_radians02)  # 라디안을 각도로 변환
+        print(f"변환전 2번 모터 기울기 각도 {round(angle_degrees02)}도")
+        angle_degrees02 = angle_degrees02 + angle_degrees01
+        print(f"2번 모터 기울기 각도 {round(angle_degrees02)}도")
+
     else:
         # 선이 검출되지 않았을 경우 모든 서보모터 정지
         sp.setServoPos03(False)
@@ -209,8 +234,7 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         sp.setServoPos02(90)  # 추가 서보모터 정지 (필요시 추가)
         print("선이 검출되지 않음: 모든 서보모터 정지")
 
-    return filtered_image, roi_image, thresholded_image, visualization_img, frame
-
+    return filtered_image, roi_image, thresholded_image, visualization_img, extended_frame
 
 
 # 동영상(카메라) 처리 함수
@@ -235,7 +259,7 @@ def process_video():
         # cv2.imshow("Color Filter", filtered_image)
         # cv2.imshow("Thresholded Image", thresholded_image)
         cv2.imshow("Slide Window Search & Lane Detection", visualization_img)
-        cv2.imshow("Result", frame)  # 메인 프레임에 그려진 결과 표시
+        cv2.imshow("Result", lane_result)  # 메인 프레임에 그려진 결과 표시
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
