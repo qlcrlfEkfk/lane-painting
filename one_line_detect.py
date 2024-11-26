@@ -216,16 +216,18 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         x2, y2 = red_point_x, red_point_y  # 두 번째 점
         dx01 = x2 - x1
         dy01 = y2 - y1
-        angle_radians01 = np.arctan2(dy01, dx01)  # 역탄젠트 사용 (라디안 단위)
-        angle_degrees01 = np.degrees(angle_radians01)# 라디안을 각도로 변환
+        angle_radians01 = np.arctan2(-dy01, dx01)  # 역탄젠트 사용 (라디안 단위)
+        angle_degrees01 = np.degrees(angle_radians01) + 180# 라디안을 각도로 변환
         sp.setServoPos01(angle_degrees01)
         print(f"1번 모터 기울기 각도: {angle_degrees01:.2f}도")
 
-        angle_radians02 = np.arctan2(dy, dx)  # 역탄젠트 계산
+        angle_radians02 = np.arctan2(-dy, dx)  # 역탄젠트 계산
         angle_degrees02 = np.degrees(angle_radians02)  # 라디안을 각도로 변환
         print(f"변환전 2번 모터 기울기 각도 {round(angle_degrees02)}도")
         angle_degrees02 = angle_degrees02 + angle_degrees01
-        print(f"2번 모터 기울기 각도 {round(angle_degrees02)}도")
+        angle_degrees02 = round(angle_degrees02)
+        sp.setServoPos02(angle_degrees02)
+        print(f"2번 모터 기울기 각도 {angle_degrees02}도")
 
     else:
         # 선이 검출되지 않았을 경우 모든 서보모터 정지
