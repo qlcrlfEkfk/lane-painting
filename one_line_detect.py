@@ -3,6 +3,7 @@ import numpy as np
 import time  # 딜레이를 위해 추가
 import math
 import servo_pigpio as sp
+import threading
 
 save_angle = 0 
 
@@ -239,8 +240,10 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
     return filtered_image, roi_image, thresholded_image, visualization_img, extended_frame
 
 
-# 동영상(카메라) 처리 함수
-def process_video():
+import threading
+
+# 동영상(카메라) 처리 스레드 함수
+def process_video_thread():
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Error: Could not open camera.")
@@ -258,8 +261,6 @@ def process_video():
         filtered_image, roi_image, thresholded_image, visualization_img, lane_result = process_frame(frame, ym_per_pix, xm_per_pix)
         
         # 각 단계별 이미지를 화면에 표시
-        # cv2.imshow("Color Filter", filtered_image)
-        # cv2.imshow("Thresholded Image", thresholded_image)
         cv2.imshow("Slide Window Search & Lane Detection", visualization_img)
         cv2.imshow("Result", lane_result)  # 메인 프레임에 그려진 결과 표시
         
@@ -270,6 +271,16 @@ def process_video():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    process_video()
+    # 스레드 생성
+    video_thread = threading.Thread(target=process_video_thread, daemon=True)
+
+    # 스레드 시작
+    video_thread.start()
+
+    print("Video processing thread started. Press 'q' in the video window to quit.")
+
+    # 메인 스레드 작업 유지
+    while video_thread.is_alive():
+        time.sleep(1)
 
 # test code please delete this message^^
