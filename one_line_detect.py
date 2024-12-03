@@ -264,13 +264,31 @@ def process_video():
         # cv2.namedWindow("Result", cv2.WINDOW_NORMAL)  # 윈도우 크기 변경 가능 설정
         # cv2.setWindowProperty("Result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-        # Original frame dimensions
+        # 원본 lane_result 크기
         height, width, _ = lane_result.shape
-        extended_height = height + 298  # Extend Y-axis by 200 pixels
 
-        # Create a black canvas with extended height
-        extended_frame = np.zeros((extended_height, width, 3), dtype=np.uint8)
-        extended_frame[149:height+149, :, :] = lane_result  # Copy original frame to the top
+        # 양옆에서 20픽셀씩 자르기 (가로 600으로 만들기)
+        cropped_lane_result = lane_result[:, 100:width - 100]  # 가로 600으로 잘라냄
+
+        # 비율을 유지하면서 가로를 640으로 확대
+        new_width = 640
+        new_height = int((cropped_lane_result.shape[0] / cropped_lane_result.shape[1]) * new_width)
+
+        # 이미지 크기 리사이즈 (640 x 자동 세로)
+        lane_result_resized = cv2.resize(cropped_lane_result, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+
+        # 원본 이미지 크기 (lane_result_resized를 기준으로)
+        resized_height, resized_width, _ = lane_result_resized.shape
+
+        # extended_frame 생성 (캔버스 크기)
+        extended_height = resized_height + 298  # 확장된 Y축
+        extended_frame = np.zeros((extended_height, resized_width, 3), dtype=np.uint8)
+
+        # 동적으로 149 값 계산 (중앙 정렬을 위해)
+        top_padding = 149
+
+        # 확장된 캔버스에 lane_result_resized 넣기
+        extended_frame[top_padding:top_padding + resized_height, :, :] = lane_result_resized
         rotated = cv2.rotate(extended_frame, cv2.ROTATE_180)
         
         screen_width = 1080  # 화면 너비 (필요하면 고정값 대입)
