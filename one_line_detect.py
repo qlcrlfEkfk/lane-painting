@@ -260,8 +260,24 @@ def process_video():
         # 각 단계별 이미지를 화면에 표시
         # cv2.imshow("Color Filter", filtered_image)
         # cv2.imshow("Thresholded Image", thresholded_image)
-        cv2.imshow("Slide Window Search & Lane Detection", visualization_img)
-        cv2.imshow("Result", lane_result)  # 메인 프레임에 그려진 결과 표시
+        # cv2.imshow("Slide Window Search & Lane Detection", visualization_img)
+        # cv2.namedWindow("Result", cv2.WINDOW_NORMAL)  # 윈도우 크기 변경 가능 설정
+        # cv2.setWindowProperty("Result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        rotated = cv2.rotate(lane_result, cv2.ROTATE_180)
+        
+        screen_width = 768  # 화면 너비 (필요하면 고정값 대입)
+        screen_height = 1024  # 화면 높이 (필요하면 고정값 대입)
+
+        # 이미지를 화면 크기로 리사이즈
+        resized = cv2.resize(rotated, (screen_width, screen_height), interpolation=cv2.INTER_LINEAR)
+        # 창 이름 및 전체화면 설정
+        window_name = "Result"
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+        # 결과 이미지 표시
+        cv2.imshow(window_name, resized)
+        # cv2.imshow("Result", lane_result)  # 메인 프레임에 그려진 결과 표시
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
