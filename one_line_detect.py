@@ -263,14 +263,22 @@ def process_video():
         # cv2.imshow("Slide Window Search & Lane Detection", visualization_img)
         # cv2.namedWindow("Result", cv2.WINDOW_NORMAL)  # 윈도우 크기 변경 가능 설정
         # cv2.setWindowProperty("Result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        rotated = cv2.rotate(lane_result, cv2.ROTATE_180)
-        
-        screen_width = 768  # 화면 너비 (필요하면 고정값 대입)
-        screen_height = 1024  # 화면 높이 (필요하면 고정값 대입)
 
-        # 이미지를 화면 크기로 리사이즈
+        # Original frame dimensions
+        height, width, _ = lane_result.shape
+        extended_height = height + 298  # Extend Y-axis by 200 pixels
+
+        # Create a black canvas with extended height
+        extended_frame = np.zeros((extended_height, width, 3), dtype=np.uint8)
+        extended_frame[149:height+149, :, :] = lane_result  # Copy original frame to the top
+        rotated = cv2.rotate(extended_frame, cv2.ROTATE_180)
+        
+        screen_width = 1080  # 화면 너비 (필요하면 고정값 대입)
+        screen_height = 1920  # 화면 높이 (필요하면 고정값 대입)
+
+        # # 이미지를 화면 크기로 리사이즈
         resized = cv2.resize(rotated, (screen_width, screen_height), interpolation=cv2.INTER_LINEAR)
-        # 창 이름 및 전체화면 설정
+        # # 창 이름 및 전체화면 설정
         window_name = "Result"
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
