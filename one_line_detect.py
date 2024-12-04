@@ -257,7 +257,7 @@ def process_video():
         # 각 단계별 처리 결과 반환
         filtered_image, roi_image, thresholded_image, visualization_img, lane_result = process_frame(frame, ym_per_pix, xm_per_pix)
         
-        # 각 단계별 이미지를 화면에 표시
+        # 각 단계별 이미지를 화면에 표시q
         # cv2.imshow("Color Filter", filtered_image)
         # cv2.imshow("Thresholded Image", thresholded_image)
         # cv2.imshow("Slide Window Search & Lane Detection", visualization_img)
@@ -284,11 +284,36 @@ def process_video():
         extended_height = resized_height + 298  # 확장된 Y축
         extended_frame = np.zeros((extended_height, resized_width, 3), dtype=np.uint8)
 
-        # 동적으로 149 값 계산 (중앙 정렬을 위해)
-        top_padding = 149
+        # 동적으로 200값 계산 (중앙 정렬을 위해)
+        top_padding = 250
 
         # 확장된 캔버스에 lane_result_resized 넣기
         extended_frame[top_padding:top_padding + resized_height, :, :] = lane_result_resized
+
+        # 텍스트 설정
+        text = "LANE PAINTING"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 2.5
+        thickness = 8
+        color = (255, 255, 255)
+
+        # 텍스트 크기 계산
+        text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
+        text_width, text_height = text_size
+
+        # 이미지 크기 계산
+        image_height, image_width, _ = extended_frame.shape
+
+        # 중앙 위치 계산 (수평 중앙)
+        text_x = (image_width - text_width) // 2
+
+        # 상단에서 80 떨어지도록 수정된 y 위치
+        # text_y = 90 + text_height  # 상단에서 65px + 텍스트의 높이만큼 떨어져야 텍스트가 잘림 없이 표시됨
+        text_y = 80 + int((text_height * 1.5))  # 상단에서 80 + 텍스트의 높이만큼 떨어져야 텍스트가 잘림 없이 표시됨
+
+        # 텍스트 삽입
+        cv2.putText(extended_frame, text, (text_x, text_y), font, font_scale, color, thickness)
+
         rotated = cv2.rotate(extended_frame, cv2.ROTATE_180)
         
         screen_width = 1080  # 화면 너비 (필요하면 고정값 대입)
@@ -296,6 +321,7 @@ def process_video():
 
         # # 이미지를 화면 크기로 리사이즈
         resized = cv2.resize(rotated, (screen_width, screen_height), interpolation=cv2.INTER_LINEAR)
+
         # # 창 이름 및 전체화면 설정
         window_name = "Result"
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
