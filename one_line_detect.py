@@ -283,17 +283,17 @@ def process_video():
         height, width, _ = display_frame.shape
 
         # 양옆에서 20픽셀씩 자르기 (가로 600으로 만들기)
-        cropped_display_frame = display_frame[:, 50:width - 50]  # 가로 600으로 잘라냄
+        cropped_display_frame = display_frame[:, 50:width - 50]  # 가로 540으로 잘라냄
 
-        # 비율을 유지하면서 가로를 640으로 확대
-        new_width = 540
-        new_height = int((cropped_display_frame.shape[0] / cropped_display_frame.shape[1]) * new_width)
+        # # 비율을 유지하면서 가로를 640으로 확대
+        # new_width = 540
+        # new_height = int((cropped_display_frame.shape[0] / cropped_display_frame.shape[1]) * new_width)
 
-        # 이미지 크기 리사이즈 (640 x 자동 세로)
-        display_frame_resized = cv2.resize(cropped_display_frame, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+        # # 이미지 크기 리사이즈 (640 x 자동 세로)
+        # display_frame_resized = cv2.resize(cropped_display_frame, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
 
         # 원본 이미지 크기 (display_frame_resized를 기준으로)
-        resized_height, resized_width, _ = display_frame_resized.shape
+        resized_height, resized_width, _ = cropped_display_frame.shape
 
         # extended_frame 생성 (캔버스 크기)
         extended_height = resized_height + 150  # 확장된 Y축
@@ -303,13 +303,13 @@ def process_video():
         top_padding = 150
 
         # 확장된 캔버스에 display_frame_resized 넣기
-        extended_frame[top_padding:top_padding + resized_height, :, :] = display_frame_resized
+        extended_frame[top_padding:top_padding + resized_height, :, :] = cropped_display_frame
 
         # 텍스트 설정
         text = "LANE PAINTING"
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 1.8
-        thickness = 4
+        font_scale = 2
+        thickness = 5
         color = (255, 255, 255)
 
         # 텍스트 크기 계산
