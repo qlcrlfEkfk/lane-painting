@@ -1,10 +1,10 @@
-import cv2
+import cv2, time, threading, math
 import numpy as np
-import time  # 딜레이를 위해 추가
-import math
 import servo_pigpio as sp
+import gpio_input_check as gc
 
-save_angle = 0 
+save_angle = 0
+flag_23, flag_24 = 1, 1
 
 # 색상 필터링 함수
 def color_filter(image):
@@ -119,9 +119,11 @@ def slide_window_search(binary_warped, center_current):
 
 # changed code
 def process_frame(frame, ym_per_pix, xm_per_pix):
+    global flag_23, flag_24
     # Original frame dimensions
     height, width, _ = frame.shape
-    extended_height = height + 360  # Extend Y-axis by 200 pixels
+    extended_height = height + 330  # Extend Y-axis by 200 pixels
+    black_image = np.zeros((extended_height, width, 3), dtype=np.uint8)  # 검정색 이미지 생성
 
     # Create a black canvas with extended height
     extended_frame = np.zeros((extended_height, width, 3), dtype=np.uint8)
@@ -150,7 +152,7 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
             cv2.circle(extended_frame, (x, y), 1, (0, 255, 0), -1)
 
         # 가상의 y 값 840까지 계산을 확장
-        y_extended = np.linspace(0, 840, num=840)
+        y_extended = np.linspace(0, 720, num=720)
         x_extended = np.interp(y_extended, ploty, center_fitx)  # 기존 선을 기반으로 보간 2차
 
         mvp_x1 = 0
@@ -161,7 +163,7 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
             y1, x1 = int(y_extended[i]), int(x_extended[i])
             
             distance = math.sqrt((x1 - 320) ** 2 + (y1 - 336) ** 2)
-            if((y1 > 336) and distance >= 384 and not flag):
+            if((y1 > 336) and distance >= 307 and not flag):
                 mvp_x1, mvp_y1 = x1, y1
                 flag = True
             
@@ -195,7 +197,7 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
 
         # 파란 점 중심으로 아래쪽 반원 그리기
         center_point = (320, 336)
-        radius = 384
+        radius = 307
 
         # 엘립스를 사용하여 아래쪽 반원 그리기
         cv2.ellipse(extended_frame, center_point, (radius, radius), 0, 0, 180, (0, 165, 255), 1)
@@ -205,7 +207,7 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         cv2.line(extended_frame, (red_point_x, red_point_y), (red_point_x - dx, red_point_y + dy), (0, 0, 255), 10)
 
         # 카메라 중심 파란색 선 그리기 & 모터 중심점
-        cv2.line(extended_frame, (320, 0), (320, 840), (255, 0, 0), 2)
+        cv2.line(extended_frame, (320, 0), (320, 810), (255, 0, 0), 2)
         cv2.circle(extended_frame, (320, 336), 5, (255, 0, 0), -1)
 
         # 모터 중심점과 빨강 교차점 그리기
@@ -228,6 +230,7 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         angle_degrees02 = round(angle_degrees02)
         sp.setServoPos02(angle_degrees02)
         print(f"2번 모터 기울기 각도 {angle_degrees02}도")
+        return filtered_image, roi_image, thresholded_image, visualization_img, extended_frame
 
     else:
         # 선이 검출되지 않았을 경우 모든 서보모터 정지
@@ -235,9 +238,9 @@ def process_frame(frame, ym_per_pix, xm_per_pix):
         sp.setServoPos01(90)  # 첫 번째 서보모터 정지
         sp.setServoPos02(90)  # 추가 서보모터 정지 (필요시 추가)
         print("선이 검출되지 않음: 모든 서보모터 정지")
+        return black_image, black_image, black_image, black_image, black_image  # 검정색 이미지 반환
 
-    return filtered_image, roi_image, thresholded_image, visualization_img, extended_frame
-
+    
 
 # 동영상(카메라) 처리 함수
 def process_video():
@@ -257,6 +260,16 @@ def process_video():
         # 각 단계별 처리 결과 반환
         filtered_image, roi_image, thresholded_image, visualization_img, lane_result = process_frame(frame, ym_per_pix, xm_per_pix)
         
+        #############################################
+        # flag_23와 flag_24의 AND 조건 확인
+        # global flag_23, flag_24
+        # if flag_23 and flag_24:
+        #     display_frame = lane_result
+        # else:
+        #     display_frame = np.zeros_like(lane_result)  # 완전한 검정색 화면 생성
+        #     sp.setServoPos03(0)  # 서보모터 상태 변경
+        #############################################
+
         # 각 단계별 이미지를 화면에 표시q
         # cv2.imshow("Color Filter", filtered_image)
         # cv2.imshow("Thresholded Image", thresholded_image)
@@ -264,37 +277,39 @@ def process_video():
         # cv2.namedWindow("Result", cv2.WINDOW_NORMAL)  # 윈도우 크기 변경 가능 설정
         # cv2.setWindowProperty("Result", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-        # 원본 lane_result 크기
-        height, width, _ = lane_result.shape
+        display_frame=lane_result
+
+        # 원본 display_frame 크기
+        height, width, _ = display_frame.shape
 
         # 양옆에서 20픽셀씩 자르기 (가로 600으로 만들기)
-        cropped_lane_result = lane_result[:, 100:width - 100]  # 가로 600으로 잘라냄
+        cropped_display_frame = display_frame[:, 50:width - 50]  # 가로 600으로 잘라냄
 
         # 비율을 유지하면서 가로를 640으로 확대
-        new_width = 640
-        new_height = int((cropped_lane_result.shape[0] / cropped_lane_result.shape[1]) * new_width)
+        new_width = 540
+        new_height = int((cropped_display_frame.shape[0] / cropped_display_frame.shape[1]) * new_width)
 
         # 이미지 크기 리사이즈 (640 x 자동 세로)
-        lane_result_resized = cv2.resize(cropped_lane_result, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+        display_frame_resized = cv2.resize(cropped_display_frame, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
 
-        # 원본 이미지 크기 (lane_result_resized를 기준으로)
-        resized_height, resized_width, _ = lane_result_resized.shape
+        # 원본 이미지 크기 (display_frame_resized를 기준으로)
+        resized_height, resized_width, _ = display_frame_resized.shape
 
         # extended_frame 생성 (캔버스 크기)
-        extended_height = resized_height + 298  # 확장된 Y축
+        extended_height = resized_height + 150  # 확장된 Y축
         extended_frame = np.zeros((extended_height, resized_width, 3), dtype=np.uint8)
 
         # 동적으로 200값 계산 (중앙 정렬을 위해)
-        top_padding = 250
+        top_padding = 150
 
-        # 확장된 캔버스에 lane_result_resized 넣기
-        extended_frame[top_padding:top_padding + resized_height, :, :] = lane_result_resized
+        # 확장된 캔버스에 display_frame_resized 넣기
+        extended_frame[top_padding:top_padding + resized_height, :, :] = display_frame_resized
 
         # 텍스트 설정
         text = "LANE PAINTING"
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 2.5
-        thickness = 8
+        font_scale = 1.8
+        thickness = 4
         color = (255, 255, 255)
 
         # 텍스트 크기 계산
@@ -309,15 +324,15 @@ def process_video():
 
         # 상단에서 80 떨어지도록 수정된 y 위치
         # text_y = 90 + text_height  # 상단에서 65px + 텍스트의 높이만큼 떨어져야 텍스트가 잘림 없이 표시됨
-        text_y = 80 + int((text_height * 1.5))  # 상단에서 80 + 텍스트의 높이만큼 떨어져야 텍스트가 잘림 없이 표시됨
+        text_y = text_height + 80 # 상단에서 80 + 텍스트의 높이만큼 떨어져야 텍스트가 잘림 없이 표시됨
 
         # 텍스트 삽입
         cv2.putText(extended_frame, text, (text_x, text_y), font, font_scale, color, thickness)
 
         rotated = cv2.rotate(extended_frame, cv2.ROTATE_180)
         
-        screen_width = 1080  # 화면 너비 (필요하면 고정값 대입)
-        screen_height = 1920  # 화면 높이 (필요하면 고정값 대입)
+        screen_width = 720  # 화면 너비 (필요하면 고정값 대입)
+        screen_height = 1280  # 화면 높이 (필요하면 고정값 대입)
 
         # # 이미지를 화면 크기로 리사이즈
         resized = cv2.resize(rotated, (screen_width, screen_height), interpolation=cv2.INTER_LINEAR)
@@ -329,7 +344,7 @@ def process_video():
 
         # 결과 이미지 표시
         cv2.imshow(window_name, resized)
-        # cv2.imshow("Result", lane_result)  # 메인 프레임에 그려진 결과 표시
+        # cv2.imshow("Result", display_frame)  # 메인 프레임에 그려진 결과 표시
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -337,7 +352,24 @@ def process_video():
     cap.release()
     cv2.destroyAllWindows()
 
-if __name__ == "__main__":
+def video_thread():
+    # 스레드에서 실행될 프로세스
     process_video()
+
+def check_thread():
+    gc.check_input_signal()
+
+if __name__ == "__main__":
+    # 스레드 생성
+    video_processing_thread = threading.Thread(target=video_thread, daemon=True)
+    video_processing_thread.start()
+
+    gpio_check_thread = threading.Thread(target=check_thread(), daemon=True)
+    gpio_check_thread.start()
+    
+    print("Press 'q' in the video window to quit.")
+    # 메인 프로그램 종료를 대기
+    while video_processing_thread.is_alive():
+        time.sleep(1)
 
 # test code please delete this message^^
