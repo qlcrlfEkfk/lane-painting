@@ -1,23 +1,14 @@
-sudo nano /etc/systemd/system/pigpiod.service
-
-
-파일에 추가 
-[Unit]
-Description=Pigpio daemon
-After=network.target
-
-[Service]
-ExecStart=/usr/bin/pigpiod
-ExecStop=/bin/systemctl kill pigpiod
-Restart=always
-Type=simple
-
-[Install]
-WantedBy=multi-user.target
-
-명령어 실행
-sudo systemctl enable pigpiod
-
-sudo reboot
-
-sudo systemctl status pigpiod
+Traceback (most recent call last):
+  File "/home/user/final_project/s_one_line_detect.py", line 366, in <module>
+    receive_frames(client_socket)
+  File "/home/user/final_project/s_one_line_detect.py", line 300, in receive_frames
+    display_frames(processed_server_frame, visualization_img)
+  File "/home/user/final_project/s_one_line_detect.py", line 259, in display_frames
+    combined_frame = combine_frames(server_frame)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/final_project/s_one_line_detect.py", line 339, in combine_frames
+    height, width, _ = server_frame.shape[:2]
+    ^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 3, got 2)
+default fonts: system QFont(Sans Serif,9,-1,5,50,0,0,0,0,0) fixed QFont(monospace,9,-1,2,50,0,0,0,0,0)
+?멸렇硫섑뀒?댁뀡 ?ㅻ쪟

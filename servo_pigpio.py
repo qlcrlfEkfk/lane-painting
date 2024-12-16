@@ -33,13 +33,16 @@ def setServoPos02(degree):
     pi.set_servo_pulsewidth(servoPin02, pulsewidth)
     
 # 서보 위치 제어 함수
-def setServoPos03(detected):
-    if detected:
+def setServoPos03(degree):
+    if degree < 90:
         pulsewidth = SERVO_MIN_PULSEWIDTH + (40 * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
-        print("Servo03 is going down")
-    else:
-        pulsewidth = SERVO_MIN_PULSEWIDTH + (150 * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
-        print("Servo03 is going up")
+        print("turn left")
+    elif degree == 90:
+        pulsewidth = SERVO_MIN_PULSEWIDTH + (90 * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
+        print("turn stop")
+    elif degree > 90:
+        pulsewidth = SERVO_MIN_PULSEWIDTH + (140 * (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) / 180.0)
+        print("turn right")
 
         # 펄스 폭을 설정하여 서보 모터의 위치를 제어
     pi.set_servo_pulsewidth(servoPin03, pulsewidth)

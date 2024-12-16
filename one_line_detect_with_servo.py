@@ -72,7 +72,7 @@ def slide_window_search(binary_warped, center_current):
     thickness = 2
     global save_angle
 
-    for w in range(4,7):
+    for w in range(nwindows):
         # 윈도우 경계 설정
         win_y_low = binary_warped.shape[0] - (w + 1) * window_height
         win_y_high = binary_warped.shape[0] - w * window_height

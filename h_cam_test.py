@@ -7,7 +7,7 @@ from collections import deque
 
 # 소켓 설정
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host_ip = "172.30.1.33"  # 윈도우 PC의 IP 주소
+host_ip = "172.30.1.13"  # 윈도우 PC의 IP 주소
 port = 5000  # 윈도우에서 설정한 포트
 client_socket.connect((host_ip, port))
 print(f"Connected to {host_ip}:{port}")

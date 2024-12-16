@@ -245,7 +245,7 @@ def process_video():
         print("Error: Could not open camera.")
         return
     
-    host_ip, port = "172.30.1.33",5000
+    host_ip, port = "172.30.1.13",5000
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host_ip, port))
     print(f"Connected to {host_ip}:{port}")
